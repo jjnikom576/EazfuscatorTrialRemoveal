@@ -20,6 +20,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.ComponentModel;
 using System.Reflection;
+using System.IO;    // เพิ่มเข้ามาสำหรับการจัดการไฟล์
 
 
 
@@ -29,6 +30,9 @@ namespace ETR
 
     public partial class MainWindow : Window
     {
+        // เพิ่มค่าคงที่สำหรับชื่อไฟล์ INI
+        private const string CONFIG_FILENAME = "lastpath.ini";
+
         public MainWindow()
         {
             InitializeComponent();
@@ -42,6 +46,51 @@ namespace ETR
         static Int32 TypeIndex = -1;
 
         private readonly BackgroundWorker worker = new BackgroundWorker();
+
+        // เพิ่มเมธอดสำหรับอ่าน path ล่าสุดจากไฟล์ INI
+        private string ReadLastPath()
+        {
+            string configPath = System.IO.Path.Combine(GetBaseAppDirectory(), CONFIG_FILENAME);
+            if (File.Exists(configPath))
+            {
+                try
+                {
+                    return File.ReadAllText(configPath);
+                }
+                catch (Exception)
+                {
+                    // เกิดข้อผิดพลาดในการอ่านไฟล์ ให้ใช้ค่าเริ่มต้น
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        // เพิ่มเมธอดสำหรับบันทึก path ล่าสุดลงในไฟล์ INI
+        private void SaveLastPath(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return;
+
+            // บันทึกเฉพาะ directory path
+            string directoryPath = System.IO.Path.GetDirectoryName(path);
+
+            string configPath = System.IO.Path.Combine(GetBaseAppDirectory(), CONFIG_FILENAME);
+            try
+            {
+                File.WriteAllText(configPath, directoryPath);
+            }
+            catch (Exception)
+            {
+                // ไม่สามารถบันทึกไฟล์ได้ ทำงานต่อไป
+            }
+        }
+
+        // เพิ่มเมธอดสำหรับดึง base application directory
+        private string GetBaseAppDirectory()
+        {
+            return AppDomain.CurrentDomain.BaseDirectory;
+        }
 
         private void worker_DoWork(object sender, DoWorkEventArgs e)
         {
@@ -66,6 +115,14 @@ namespace ETR
             Microsoft.Win32.OpenFileDialog dlg = new Microsoft.Win32.OpenFileDialog();
             dlg.DefaultExt = ".exe";
             dlg.Filter = ".NET Module (*.exe)|*.exe";
+
+            // อ่าน path ล่าสุดจากไฟล์ INI แล้วตั้งค่าให้กับ dialog
+            string lastPath = ReadLastPath();
+            if (!string.IsNullOrEmpty(lastPath) && Directory.Exists(lastPath))
+            {
+                dlg.InitialDirectory = lastPath;
+            }
+
             Nullable<bool> result = dlg.ShowDialog();
 
             if (result == true)
@@ -73,8 +130,11 @@ namespace ETR
                 string filename = dlg.FileName;
                 txt_assembly.Text = filename;
                 Filepath = filename;
-                worker.RunWorkerAsync();
 
+                // บันทึก path ล่าสุดลงในไฟล์ INI
+                SaveLastPath(filename);
+
+                worker.RunWorkerAsync();
             }
         }
 
@@ -234,7 +294,6 @@ namespace ETR
 
         public String GetOutput()
         {
-
             String dir = System.IO.Path.GetDirectoryName(Filepath);
             String noExt = System.IO.Path.GetFileNameWithoutExtension(Filepath);
             String ext = System.IO.Path.GetExtension(Filepath);
