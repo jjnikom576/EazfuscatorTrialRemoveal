@@ -17,6 +17,7 @@
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
     <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
+    <StartupObject>ETR.Program</StartupObject>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -83,6 +84,8 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Patcher.cs" />
+    <Compile Include="NativeMethods.cs" />
+    <Compile Include="Program.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
